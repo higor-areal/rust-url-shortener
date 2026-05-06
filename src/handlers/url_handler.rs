@@ -7,15 +7,15 @@ use axum::{
     },
     
 };
-use std::sync::{
+use std::{collections::HashMap, sync::{
     Arc, Mutex
-};
+}};
 use rand::Rng;
 
 use crate::{
     models::link::{Link, NewLink}, 
-    reponses::response::{ResponseNewShort, ResponseGetShorten, ResponseErro}, 
-    state::app_state::AppState
+    reponses::response::{ResponseErro, ResponseGetShorten, ResponseNewShort}, 
+    state::{self, app_state::AppState}
 };
 
 
@@ -90,4 +90,9 @@ pub async fn get_shorten(
             Err(Json(res))
         }
     }
+}
+
+pub async fn get_links(State(state): State<Arc<Mutex<AppState>>>) -> Json<HashMap<String, Link>>{
+    let data = state.lock().unwrap();
+    Json(data.map.clone())
 }
