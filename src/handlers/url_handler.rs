@@ -14,8 +14,8 @@ use rand::Rng;
 
 use crate::{
     models::link::{Link, NewLink}, 
-    reponses::response::{ResponseErro, ResponseGetShorten, ResponseNewShort}, 
-    state::{self, app_state::AppState}
+    reponses::response::{ResponseErro, ResponseGetShorten, ResponseNewShort, ResponseGetLink}, 
+    state::{ app_state::AppState}
 };
 
 
@@ -92,7 +92,20 @@ pub async fn get_shorten(
     }
 }
 
-pub async fn get_links(State(state): State<Arc<Mutex<AppState>>>) -> Json<HashMap<String, Link>>{
+pub async fn get_links(State(state): State<Arc<Mutex<AppState>>>) -> Json<Vec<ResponseGetLink>>{
     let data = state.lock().unwrap();
-    Json(data.map.clone())
+
+    let res : Vec<ResponseGetLink> = data.map
+    .iter()
+    .map(|(code, link)|
+        ResponseGetLink{
+            code: code.clone(),
+            original_url: link.original_url.clone(),
+            clicks: link.clicks
+        }
+    )
+    .collect();
+    
+
+    Json(res)
 }
