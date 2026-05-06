@@ -15,7 +15,7 @@ use std::{
     }
 };
 
-use handlers::url_handler::{health, new_shorten, get_shorten};
+use handlers::url_handler::{health, new_shorten, get_shorten, get_links};
 use models::link::Link;
 use state::app_state::AppState;
 
@@ -30,6 +30,7 @@ async fn main() {
     .route("/", get(health))
     .route("/shorten", post(new_shorten))
     .route("/r/{code}", get(get_shorten))
+    .route("/links", get(get_links))
     .with_state(shared);
 
 
