@@ -15,3 +15,10 @@ pub struct ResponseErro{
     pub status_code: u32,
     pub message: String,
 }
+
+#[derive(Serialize)]
+pub struct ResponseGetLink {
+    pub code: String,
+    pub original_url: String,
+    pub clicks: u32,
+}
