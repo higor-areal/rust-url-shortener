@@ -7,9 +7,11 @@ use axum::{
     },
     
 };
-use std::{collections::HashMap, sync::{
+use std::{
+    sync::{
     Arc, Mutex
 }};
+
 use rand::Rng;
 
 use crate::{
