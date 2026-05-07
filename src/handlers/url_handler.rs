@@ -16,7 +16,7 @@ use rand::Rng;
 
 use crate::{
     models::link::{Link, NewLink}, 
-    reponses::response::{ResponseErro, ResponseGetShorten, ResponseNewShort, ResponseGetLink}, 
+    reponses::response::{Response, ResponseGetShorten, ResponseNewShort, ResponseGetLink}, 
     state::{ app_state::AppState}
 };
 
@@ -70,7 +70,7 @@ pub async fn new_shorten(
 pub async fn get_shorten(
     Path(code): Path<String>,
     State(state): State<Arc<Mutex<AppState>>>,
-) -> Result<Json<ResponseGetShorten>, Json<ResponseErro>> {
+) -> Result<Json<ResponseGetShorten>, Json<Response>> {
     let mut data = state.lock().unwrap();
 
     match data.map.get_mut(&code) {
@@ -84,7 +84,7 @@ pub async fn get_shorten(
             Ok(Json(res))
         }
         None => {
-            let res = ResponseErro {
+            let res = Response {
                 status_code: 404,
                 message: format!("Erro ao procurar {}", code),
             };
@@ -110,4 +110,24 @@ pub async fn get_links(State(state): State<Arc<Mutex<AppState>>>) -> Json<Vec<Re
     
 
     Json(res)
+}
+
+pub async fn del_shorten(
+    Path(code): Path<String>,
+    State(state): State<Arc<Mutex<AppState>>>,
+) -> Json<Response> {
+    let mut data = state.lock().unwrap();
+
+    let mut res = Response{
+        status_code: 404,
+        message: "not deleted".to_string()
+    };
+
+
+    if let Some(x) = data.map.remove(&code){
+        res.status_code = 200;
+        res.message = "deleted".to_string();
+    }
+    Json(res)
+
 }
