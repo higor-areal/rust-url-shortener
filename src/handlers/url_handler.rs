@@ -45,7 +45,14 @@ pub async fn short_code(size: usize) -> String {
 pub async fn new_shorten(
     State(state): State<Arc<Mutex<AppState>>>,
     Json(x): Json<NewLink>
-) -> Json<ResponseNewShort> {
+) -> Result<Json<ResponseNewShort>, Json<Response>> {
+    if x.url.is_empty() {
+        return Err(Json(Response{
+            status_code: 404,
+            message: "Url inválida".to_string()
+        }))
+    }
+
     let short = short_code(8).await;
 
     let mut data = state.lock().unwrap();
@@ -61,10 +68,10 @@ pub async fn new_shorten(
 
     data.end += 1;
 
-    Json(ResponseNewShort {
+    Ok(Json(ResponseNewShort {
         status_code: 201,
         short_code: new_short,
-    })
+    }))
 }
 
 pub async fn get_shorten(
