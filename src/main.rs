@@ -5,7 +5,7 @@ mod reponses;
 
 use axum::{
     Router,
-    routing::{get, post},
+    routing::{get, post, delete},
 };
 
 use std::{
@@ -15,7 +15,7 @@ use std::{
     }
 };
 
-use handlers::url_handler::{health, new_shorten, get_shorten, get_links};
+use handlers::url_handler::{health, new_shorten, get_shorten, get_links, del_shorten};
 use state::app_state::AppState;
 
 
@@ -30,6 +30,7 @@ async fn main() {
     .route("/shorten", post(new_shorten))
     .route("/r/{code}", get(get_shorten))
     .route("/links", get(get_links))
+    .route("/links/{code}", delete(del_shorten))
     .with_state(shared);
 
 
