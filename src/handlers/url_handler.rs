@@ -124,10 +124,11 @@ pub async fn del_shorten(
     };
 
 
-    if let Some(x) = data.map.remove(&code){
+    if let Some(_) = data.map.remove(&code){
         res.status_code = 200;
         res.message = "deleted".to_string();
     }
+
     Json(res)
 
 }

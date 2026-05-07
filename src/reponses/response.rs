@@ -11,7 +11,7 @@ pub struct ResponseGetShorten{
     pub url: String
 }
 #[derive(Serialize)]
-pub struct ResponseErro{
+pub struct Response{
     pub status_code: u32,
     pub message: String,
 }
