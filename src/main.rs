@@ -16,7 +16,6 @@ use std::{
 };
 
 use handlers::url_handler::{health, new_shorten, get_shorten, get_links};
-use models::link::Link;
 use state::app_state::AppState;
 
 
