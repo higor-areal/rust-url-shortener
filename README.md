@@ -279,3 +279,9 @@ http://localhost:3000
 ## Objetivo
 
 Projeto educacional criado para praticar Rust backend e construção de APIs reais.
+
+
+## Notas
+Fazendo o necessario pra usar o redis, ainda não endento a fundo as ferramentas que uso, mas sigo usando.
+Vou adicionar um dockefile, no final pra quando alguém precisar rodar, só rodar o docker file e pronto.
+Vou ver a possibilidade do docker compose + portainer pra controlar visualmente as stacks
