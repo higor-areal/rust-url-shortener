@@ -1,4 +1,5 @@
 use serde_json::{json, Value};
+
 use axum::{
     Json,
     extract::{
@@ -7,10 +8,10 @@ use axum::{
     },
     
 };
-use std::{
-    sync::{
-    Arc, Mutex
-}};
+
+use redis::AsyncCommands;
+
+use std::sync::Arc;
 
 use rand::Rng;
 
@@ -43,37 +44,52 @@ pub async fn short_code(size: usize) -> String {
 }
 
 pub async fn new_shorten(
-    State(state): State<Arc<Mutex<AppState>>>,
+    State(state): State<Arc<AppState>>,
     Json(x): Json<NewLink>
 ) -> Result<Json<ResponseNewShort>, Json<Response>> {
+    print!("{}", x.url);
     if x.url.is_empty() {
         return Err(Json(Response{
             status_code: 404,
-            message: "Url inválida".to_string()
+            message: "Url inválida0".to_string()
         }))
     }
 
     let short = short_code(8).await;
 
-    let mut data = state.lock().unwrap();
+    let mut conn = match state
+        .redis
+        .get()
+        .await {
+        Ok(t) => t,
+        Err(e) => {
+            return Err(Json(Response {
+                status_code: 500,
+                message: format!("erro redis: {:?}", e),
+            }));
+        }
+    };
 
-    let link = Link{original_url: x.url, clicks: 0};
 
-    let new_short = format!("{short}{}", data.end);
-
-    data.map.insert(
-        new_short.clone(),
-        link
-    );
-
-    data.end += 1;
+    let _: () = conn
+        .hset_multiple(
+            &short,
+            &[("url", x.url.as_str()), ("clicks", "0")]
+        )
+        .await
+        .map_err(|_| Json(Response {
+            status_code: 404,
+            message: "Url inválida".to_string(),
+        }))?;
 
     Ok(Json(ResponseNewShort {
         status_code: 201,
-        short_code: new_short,
+        short_code: short,
     }))
 }
 
+
+/* 
 pub async fn get_shorten(
     Path(code): Path<String>,
     State(state): State<Arc<Mutex<AppState>>>,
@@ -138,4 +154,4 @@ pub async fn del_shorten(
 
     Json(res)
 
-}
+}*/
