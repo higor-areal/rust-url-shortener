@@ -1,9 +1,6 @@
-use std::collections::HashMap;
-use crate::models::link::Link;
+use deadpool_redis::Pool;
 
 #[derive(Clone)]
-pub struct AppState{
-    pub map: HashMap<String, Link>,
-    pub end: u32,
+pub struct AppState {
+    pub redis: Pool,
 }
-
