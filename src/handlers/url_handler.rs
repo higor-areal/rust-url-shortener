@@ -3,15 +3,17 @@ use serde_json::{json, Value};
 use axum::{
     Json,
     extract::{
-        State,
-        Path
-    },
+        Path, State
+    }, response::Redirect,
     
 };
 
-use redis::AsyncCommands;
+use redis::{AsyncCommands};
 
-use std::sync::Arc;
+use std::{
+    collections::HashMap,
+    sync::Arc
+};
 
 use rand::Rng;
 
@@ -57,18 +59,7 @@ pub async fn new_shorten(
 
     let short = short_code(8).await;
 
-    let mut conn = match state
-        .redis
-        .get()
-        .await {
-        Ok(t) => t,
-        Err(e) => {
-            return Err(Json(Response {
-                status_code: 500,
-                message: format!("erro redis: {:?}", e),
-            }));
-        }
-    };
+    let mut conn = state.get_pool().await?;
 
 
     let _: () = conn
@@ -89,34 +80,57 @@ pub async fn new_shorten(
 }
 
 
-/* 
+
 pub async fn get_shorten(
     Path(code): Path<String>,
-    State(state): State<Arc<Mutex<AppState>>>,
-) -> Result<Json<ResponseGetShorten>, Json<Response>> {
-    let mut data = state.lock().unwrap();
+    State(state): State<Arc<AppState>>,
+) -> Result<Redirect, Json<Response>> {
 
-    match data.map.get_mut(&code) {
-        Some(link) => {
-            link.clicks += 1;
+    let mut conn = state.get_pool().await?;
 
-            let res = ResponseGetShorten {
-                url: link.original_url.clone(),
-            };
-
-            Ok(Json(res))
+    let res: HashMap<String, String> = match conn.hgetall(&code).await {
+        Ok(data) => data,
+        Err(_) => {
+            return Err(Json(Response {
+                status_code: 500,
+                message: "Erro ao buscar link".to_string(),
+            }))
         }
-        None => {
-            let res = Response {
-                status_code: 404,
-                message: format!("Erro ao procurar {}", code),
-            };
+    };
 
-            Err(Json(res))
-        }
+    if res.is_empty() {
+        return Err(Json(Response {
+            status_code: 404,
+            message: "Link não encontrado".to_string(),
+        }));
     }
-}
 
+    let url = match res.get("url") {
+        Some(url) => url,
+        None => {
+            return Err(Json(Response {
+                status_code: 500,
+                message: "URL não encontrada".to_string(),
+            }))
+        }
+    };
+
+    let clicks: i64 = match conn
+        .hincr(&code, "clicks", 1)
+        .await
+    {
+        Ok(value) => value,
+        Err(_) => {
+            return Err(Json(Response {
+                status_code: 500,
+                message: "Erro ao incrementar clicks".to_string(),
+            }))
+        }
+    };
+
+    Ok(Redirect::temporary(url))
+}
+/* 
 pub async fn get_links(State(state): State<Arc<Mutex<AppState>>>) -> Json<Vec<ResponseGetLink>>{
     let data = state.lock().unwrap();
 
