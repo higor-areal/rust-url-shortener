@@ -14,7 +14,7 @@ use deadpool_redis::{
 };
 use std::sync::Arc;
 
-use handlers::url_handler::{health, new_shorten};
+use handlers::url_handler::{health, new_shorten, get_shorten};
 use state::app_state::AppState;
 
 
@@ -34,7 +34,7 @@ async fn main() {
     let app = Router::new()
     .route("/", get(health))
     .route("/shorten", post(new_shorten))
-//    .route("/r/{code}", get(get_shorten))
+    .route("/r/{code}", get(get_shorten))
 //    .route("/links", get(get_links))
 //    .route("/links/{code}", delete(del_shorten))
     .with_state(state);
