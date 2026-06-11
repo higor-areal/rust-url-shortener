@@ -66,19 +66,6 @@ impl RedisStore {
         
         Ok(code)
     }
-    
-    async fn get_link(&self, code: &str) -> Result<Link, String> {
-        let mut conn = self
-            .conn()
-            .await
-            .map_err(|e| e.to_string())?;
-
-        let link = self
-            .get_link_conn(code, &mut conn)
-            .await?;
-
-        Ok(link)
-    }
 
     pub async fn del_code(
     &self,
