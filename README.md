@@ -1,40 +1,30 @@
-# Rust URL Shortener API 🦀🔗
+# 🔗 Rust URL Shortener
 
-Uma API simples de encurtamento de links construída com Rust e Axum.
+Um encurtador de URLs desenvolvido em Rust utilizando Axum e Redis.
 
-Este projeto foi criado com foco em aprendizado de backend e aprofundamento em Rust, praticando conceitos como:
+O projeto permite:
 
-- APIs REST
-- roteamento com Axum
-- async/await com Tokio
-- gerenciamento de estado compartilhado
-- HashMap
-- geração de códigos aleatórios
-- modularização de projeto
+* Criar URLs encurtadas
+* Redirecionar para a URL original
+* Listar links cadastrados
+* Remover links
+* Armazenar dados no Redis
 
 ---
 
-## Funcionalidades
+# 🦀 Tecnologias Utilizadas
 
-- Criar link encurtado
-- Buscar URL original a partir de código curto
-- Listar links cadastrados
-- Contabilizar acessos por link
-
----
-
-## Stack
-
-- Rust
-- Axum
-- Tokio
-- Serde
-- Serde JSON
-- Rand
+* Rust
+* Axum
+* Tokio
+* Redis
+* Deadpool Redis
+* Serde
+* Rand
 
 ---
 
-## Estrutura do projeto
+# 📂 Estrutura do Projeto
 
 ```txt
 src/
@@ -46,7 +36,11 @@ src/
 │   ├── mod.rs
 │   └── link.rs
 │
-├── responses/
+├── repositories/
+│   ├── mod.rs
+│   └── redis_repository.rs
+│
+├── reponses/
 │   ├── mod.rs
 │   └── response.rs
 │
@@ -59,22 +53,25 @@ src/
 
 ---
 
-## Modelos
+# 📦 Modelos
 
-### Link
+## Link
+
+Representa um link armazenado no Redis.
 
 ```rust
 pub struct Link {
+    pub code: String,
     pub original_url: String,
     pub clicks: u32,
 }
 ```
 
-Representa um link salvo na memória.
-
 ---
 
-### NewLink
+## NewLink
+
+Payload utilizado para criar um novo link.
 
 ```rust
 pub struct NewLink {
@@ -82,38 +79,42 @@ pub struct NewLink {
 }
 ```
 
-Payload recebido para criação de novo link.
-
 ---
 
-## Estado da aplicação
+# 🗄️ Persistência
 
-A aplicação armazena links em memória usando HashMap.
+O projeto utiliza Redis para armazenar os links.
+
+Cada link é salvo utilizando um código aleatório gerado pela função:
 
 ```rust
-HashMap<String, Link>
+short_code(12)
 ```
 
-Onde:
-
-- key = short_code
-- value = Link
-
-Exemplo:
+Os dados armazenados são:
 
 ```txt
-abc123 -> https://google.com
+url
+clicks
 ```
+
+Além disso, os códigos são adicionados à lista:
+
+```txt
+links
+```
+
+para posterior consulta.
 
 ---
 
-## Endpoints
+# 🌐 Rotas
 
-### GET /
+## GET /
 
-Health route.
+Healthcheck da aplicação.
 
-Response:
+### Resposta
 
 ```json
 {
@@ -123,108 +124,126 @@ Response:
 
 ---
 
-### POST /shorten
+## POST /shorten
 
-Cria novo link curto.
+Cria uma URL encurtada.
 
-Request:
+### Payload
 
 ```json
 {
-  "url": "https://www.youtube.com/watch?v=123"
+  "url": "https://google.com"
 }
 ```
 
-Response:
+### Resposta
 
 ```json
 {
   "status_code": 201,
-  "short_code": "ab12CD"
+  "short_code": "abc123xyz789"
 }
 ```
 
 ---
 
-### GET /r/{code}
+## GET /r/
 
-Busca URL original pelo código.
+Busca o código informado e realiza redirecionamento para a URL original.
 
 Exemplo:
 
+```http
+GET /r/abc123xyz789
+```
+
+Resposta:
+
 ```txt
-GET /r/ab12CD
-```
-
-Response:
-
-```json
-{
-  "url": "https://www.youtube.com/watch?v=123"
-}
-```
-
-Também incrementa contador de acessos.
-
----
-
-### GET /links
-
-Lista todos links cadastrados.
-
-Response:
-
-```json
-[
-  {
-    "code": "ab12CD",
-    "original_url": "https://www.youtube.com/watch?v=123",
-    "clicks": 4
-  }
-]
+302 Redirect
 ```
 
 ---
 
-### DELETE /links/{code}
+## GET /links
 
-Remove link salvo.
+Retorna os links cadastrados.
 
-Response:
+---
 
-```json
-{
-  "status_code": 200,
-  "message": "deleted"
-}
+## DELETE /links/
+
+Remove um link cadastrado.
+
+Exemplo:
+
+```http
+DELETE /links/abc123xyz789
 ```
 
 ---
 
-## Regras de negócio
+# ⚙️ Arquitetura
 
-- URL não pode ser vazia
-- código curto deve ser aleatório
-- código deve ser único
-- acessos incrementam contador
+O projeto segue uma separação simples de responsabilidades:
+
+### Handlers
+
+Responsáveis pelas rotas HTTP.
+
+Arquivo:
+
+```txt
+handlers/url_handler.rs
+```
 
 ---
 
-## Como rodar
+### Models
 
-Clone:
+Estruturas de entrada e saída da aplicação.
+
+Arquivo:
+
+```txt
+models/link.rs
+```
+
+---
+
+### Repository
+
+Camada responsável pela comunicação com o Redis.
+
+Arquivo:
+
+```txt
+repositories/redis_repository.rs
+```
+
+---
+
+### State
+
+Estado compartilhado da aplicação.
+
+Arquivo:
+
+```txt
+state/app_state.rs
+```
+
+---
+
+# 🚀 Executando
+
+Inicie um Redis local:
 
 ```bash
-git clone https://github.com/higor-areal/rust-url-shortener.git
+redis-server
 ```
 
-Entre na pasta:
-
-```bash
-cd rust-url-shortener
-```
-
-Execute:
+Execute a aplicação:
 
 ```bash
 cargo run
@@ -238,50 +257,30 @@ http://localhost:3000
 
 ---
 
-## Fluxo interno
+# 📚 Aprendizados
 
-1. usuário envia URL
-2. API gera código aleatório
-3. salva em HashMap
-4. retorna código
-5. usuário consulta código
-6. API retorna URL original
+Este projeto foi utilizado para estudar:
 
----
-
-## Conceitos praticados
-
-- ownership
-- borrowing
-- Arc
-- Mutex
-- HashMap
-- modularização
-- handlers
-- shared state
-- path params
-- JSON serialization
-- Result e error handling
+* Axum
+* Rotas HTTP
+* Estado compartilhado
+* Redis
+* Pool de conexões
+* Serialização com Serde
+* Organização em módulos
+* Repository Pattern
+* Operações assíncronas com Tokio
 
 ---
 
-## Próximas melhorias
+# 🔧 Melhorias Futuras
 
-- persistência com SQLite
-- persistência com Supabase
-- expiração de links
-- autenticação
-- redirect HTTP real
-- testes automatizados
+Algumas melhorias que podem ser adicionadas futuramente:
 
----
-
-## Objetivo
-
-Projeto educacional criado para praticar Rust backend e construção de APIs reais.
-
-
-## Notas
-Fazendo o necessario pra usar o redis, ainda não endento a fundo as ferramentas que uso, mas sigo usando.
-Vou adicionar um dockefile, no final pra quando alguém precisar rodar, só rodar o docker file e pronto.
-Vou ver a possibilidade do docker compose + portainer pra controlar visualmente as stacks
+* Validação de URL
+* Contador de cliques durante o redirecionamento
+* Expiração de links
+* Códigos personalizados
+* Tratamento de erros HTTP mais detalhado
+* Variáveis de ambiente para configuração do Redis
+* Testes automatizados
