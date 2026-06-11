@@ -66,14 +66,51 @@ impl RedisStore {
         
         Ok(code)
     }
-
-    pub async fn get_link(&self, code: &str) -> Result<Link, String>{
-        let mut conn = 
-            self
+    
+    async fn get_link(&self, code: &str) -> Result<Link, String> {
+        let mut conn = self
             .conn()
             .await
             .map_err(|e| e.to_string())?;
 
+        let link = self
+            .get_link_conn(code, &mut conn)
+            .await?;
+
+        Ok(link)
+    }
+
+    pub async fn del_code(
+    &self,
+    code: &str,
+    ) -> Result<(), String> {
+
+        let mut conn = self
+            .conn()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        //esse trecho é uma adaptação de IA ainda não entendo o que tudo isso faz, só sei que juntos, fazem uma requisição ao redis, de maneira atomica, e com varias operações por vez, ainda não sei se faz rollback sozinho
+        let (hash, list): (i32, i32) = redis::pipe()
+            .atomic()
+            .del(code)
+            .lrem("links", 1, code)
+            .query_async(&mut conn)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        if hash == 0 && list == 0 {
+            return Err("Código não encontrado".to_string());
+        }
+
+        Ok(())
+    }
+
+    async fn get_link_conn(
+        &self,
+        code: &str,
+        conn: &mut Connection,
+    ) -> Result<Link, String>{
         let data: HashMap<String, String> = 
             conn
             .hgetall(code)
@@ -97,15 +134,12 @@ impl RedisStore {
         };
 
         Ok(Link {
+            code: code.to_string(),
             original_url: url.to_string(),
             clicks:clicks     
         })
-
-        
-
     }
-
-    
+        
 
     pub async fn get_url(&self, code: &str) -> Result<String, String>{
         let mut conn = 
@@ -139,5 +173,26 @@ impl RedisStore {
 
     }
 
+    pub async fn lasted_links(&self) -> Result<Vec<Link>, String>{
+        let mut conn = 
+            self
+            .conn()
+            .await
+            .map_err(|e| e.to_string())?;
 
+        let codes: Vec<String> = 
+            conn
+            .lrange("links", 0, 49)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let mut links: Vec<Link> = vec![];
+        for code in codes {
+            match self.get_link_conn(&code, &mut conn).await{
+                Ok(value) => links.push(value),
+                Err(msg) => links.push(Link { code, original_url: format!("ERRO: {msg}"), clicks: 0 }),
+            };
+        }
+        Ok(links)
+    }
 }
