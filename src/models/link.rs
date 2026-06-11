@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct Link {
+    pub code: String,
     pub original_url: String,
     pub clicks: u32,
 }
