@@ -2,6 +2,7 @@ mod models;
 mod handlers;
 mod state;
 mod reponses;
+mod repositories;
 
 use axum::{
     Router,
@@ -16,6 +17,7 @@ use std::sync::Arc;
 
 use handlers::url_handler::{health, new_shorten, get_shorten};
 use state::app_state::AppState;
+use repositories::redis_repository::RedisStore;
 
 
 #[tokio::main]
@@ -23,12 +25,8 @@ async fn main() {
 
     let cfg = Config::from_url("redis://localhost:6379");
 
-    let redis_pool = cfg
-        .create_pool(Some(Runtime::Tokio1))
-        .expect("Erro ao criar pool Redis");
-
     let state = Arc::new(AppState {
-        redis: redis_pool.clone(),
+        redis: RedisStore::new(cfg)
     });
 
     let app = Router::new()
