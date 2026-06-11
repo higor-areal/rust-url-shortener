@@ -8,20 +8,14 @@ use axum::{
     
 };
 
-use redis::{AsyncCommands};
-
 use std::{
-    collections::HashMap,
     sync::Arc
 };
 
 
 
 use crate::{
-    models::link::{Link, NewLink}, 
-    reponses::response::{Response, ResponseGetShorten, ResponseNewShort, ResponseGetLink}, 
-    state::{ app_state::AppState},
-    repositories::redis_repository::RedisStore
+    models::link::{Link, NewLink}, reponses::response::{Response, ResponseNewShort}, state::app_state::AppState
 };
 
 
@@ -83,30 +77,27 @@ pub async fn get_shorten(
 
     Ok(Redirect::temporary(&url))
 }
-/* 
-pub async fn get_links(State(state): State<Arc<Mutex<AppState>>>) -> Json<Vec<ResponseGetLink>>{
-    let data = state.lock().unwrap();
 
-    let res : Vec<ResponseGetLink> = data.map
-    .iter()
-    .map(|(code, link)|
-        ResponseGetLink{
-            code: code.clone(),
-            original_url: link.original_url.clone(),
-            clicks: link.clicks
-        }
-    )
-    .collect();
+pub async fn get_links(State(state): State<Arc<AppState>>) -> Result<Json<Vec<Link>>, Json<Response>>{
+    let redis = state.redis.clone();
+
+    let res : Vec<Link> = match redis.lasted_links().await {
+        Ok(t) => t,
+        Err(msg) => return Err(Json(Response{
+            status_code: 404,
+            message: msg
+        }))
+    };
     
-
-    Json(res)
+    Ok(Json(res))
 }
+
 
 pub async fn del_shorten(
     Path(code): Path<String>,
-    State(state): State<Arc<Mutex<AppState>>>,
+    State(state): State<Arc<AppState>>,
 ) -> Json<Response> {
-    let mut data = state.lock().unwrap();
+    let redis = state.redis.clone();
 
     let mut res = Response{
         status_code: 404,
@@ -114,11 +105,14 @@ pub async fn del_shorten(
     };
 
 
-    if let Some(_) = data.map.remove(&code){
-        res.status_code = 200;
-        res.message = "deleted".to_string();
+    match redis.del_code(&code).await{
+        Ok(_) => {
+            res.status_code = 200;
+            res.message = "deleted".to_string();
+        },
+        Err(msg) => res.message = msg
     }
 
     Json(res)
 
-}*/
+}
