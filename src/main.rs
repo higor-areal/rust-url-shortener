@@ -6,16 +6,16 @@ mod repositories;
 
 use axum::{
     Router,
-    routing::{get, post},
+    routing::{get, post, delete},
 };
 
 use deadpool_redis::{
     Config,
-    Runtime,
 };
+
 use std::sync::Arc;
 
-use handlers::url_handler::{health, new_shorten, get_shorten};
+use handlers::url_handler::{health, new_shorten, get_shorten, get_links, del_shorten};
 use state::app_state::AppState;
 use repositories::redis_repository::RedisStore;
 
@@ -33,8 +33,8 @@ async fn main() {
     .route("/", get(health))
     .route("/shorten", post(new_shorten))
     .route("/r/{code}", get(get_shorten))
-//    .route("/links", get(get_links))
-//    .route("/links/{code}", delete(del_shorten))
+    .route("/links", get(get_links))
+    .route("/links/{code}", delete(del_shorten))
     .with_state(state);
 
 
